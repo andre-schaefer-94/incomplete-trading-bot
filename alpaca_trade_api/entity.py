@@ -36,30 +36,65 @@ class Entity(object):
 
 
 class Account(Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/account/
+    """
     pass
 
 
 class AccountConfigurations(Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/account-configuration/
+    """
     pass
 
 
 class Asset(Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/assets/#asset-entity
+    """
     pass
 
 
 class Order(Entity):
-    pass
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/orders/#order-entity
+    """
+    def __init__(self, raw):
+        super().__init__(raw)
+        try:
+            self.legs = [Order(o) for o in self.legs]
+        except Exception:
+            # No order legs existed
+            pass
 
 
 class Position(Entity):
+    """
+    Entity properties:
+https://alpaca.markets/docs/api-documentation/api-v2/positions/#position-entity
+    """
     pass
 
 
 class AccountActivity(Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/account-activities/
+    """
     pass
 
 
 class Bar(Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/market-data/bars/
+    #bars-entity
+    """
     def __getattr__(self, key):
         if key == 't':
             val = self._raw[key[0]]
@@ -123,7 +158,95 @@ class BarSet(dict):
         return self._df
 
 
+class _Timestamped(object):
+    _tskeys = ('timestamp',)
+
+    def __getattr__(self, key):
+        if key in self._raw:
+            val = self._raw[key]
+            if key in self._tskeys:
+                return pd.Timestamp(val, tz=NY, unit=self._unit)
+            return val
+        return getattr(super(), key)
+
+
+class _NanoTimestamped(_Timestamped):
+    _unit = 'ns'
+
+
+class _MilliTimestamped(_Timestamped):
+    _unit = 'ms'
+
+
+class Agg(_MilliTimestamped, Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/market-data/streaming/
+    """
+    _tskeys = ('timestamp', 'start', 'end')
+
+
+class Aggs(list):
+    def __init__(self, raw):
+        self._raw = raw
+        super().__init__([
+            Agg(tick) for tick in self.rename_keys()
+        ])
+
+    def _raw_results(self):
+        return self._raw.get('results', [])
+
+    def rename_keys(self):
+        colmap = {
+            "o": "open",
+            "h": "high",
+            "l": "low",
+            "c": "close",
+            "v": "volume",
+            "t": "timestamp",
+        }
+        return [
+            {colmap.get(k, k): v for k, v in tick.items()}
+            for tick in self._raw_results()
+        ]
+
+    @property
+    def df(self):
+        if not hasattr(self, '_df'):
+            columns = ('timestamp', 'open', 'high', 'low', 'close', 'volume')
+            df = pd.DataFrame(
+                self.rename_keys(),
+                columns=columns
+            )
+            df.set_index('timestamp', inplace=True)
+            df.index = pd.to_datetime(
+                df.index.astype('int64'),
+                unit='ms', utc=True
+            ).tz_convert(NY)
+
+            self._df = df
+        return self._df
+
+
+class Trade(_NanoTimestamped, Entity):
+    pass
+
+
+class Quote(_NanoTimestamped, Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/market-data/last-quote
+    /#last-quote-entity
+    """
+    pass
+
+
 class Clock(Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/clock/#clock-entity
+    """
+
     def __getattr__(self, key):
         if key in self._raw:
             val = self._raw[key]
@@ -135,6 +258,11 @@ class Clock(Entity):
 
 
 class Calendar(Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/calendar/
+    #calendar-entity
+    """
     def __getattr__(self, key):
         if key in self._raw:
             val = self._raw[key]
@@ -142,6 +270,87 @@ class Calendar(Entity):
                 return pd.Timestamp(val)
             elif key in ('open', 'close'):
                 return pd.Timestamp(val).time()
+            elif key in ('session_open', 'session_close'):
+                return pd.Timestamp(val[:2] + ':' + val[-2:]).time()
             else:
                 return val
         return super().__getattr__(key)
+
+
+class Watchlist(Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/watchlist/
+    #watchlist-entity
+    """
+    pass
+
+
+class PortfolioHistory(Entity):
+    """
+    Entity properties:
+    https://alpaca.markets/docs/api-documentation/api-v2/portfolio-history/
+    #portfoliohistory-entity
+    """
+    def __init__(self, raw):
+        self._raw = raw
+
+    @property
+    def df(self):
+        if not hasattr(self, '_df'):
+            df = pd.DataFrame(
+                self._raw, columns=(
+                    'timestamp', 'profit_loss', 'profit_loss_pct', 'equity'
+                ),
+            )
+            df.set_index('timestamp', inplace=True)
+            if not df.empty:
+                df.index = pd.to_datetime(
+                    (df.index * 1e9).astype('int64'), utc=True,
+                ).tz_convert(NY)
+            else:
+                df.index = pd.to_datetime(
+                    df.index, utc=True
+                )
+            self._df = df
+        return self._df
+
+
+trade_mapping = {
+    "T": "symbol",
+    "c": "conditions",
+    "x": "exchange",
+    "p": "price",
+    "s": "size",
+    "t": "timestamp"
+}
+
+quote_mapping = {
+    "T": "symbol",
+    "X": "askexchange",
+    "P": "askprice",
+    "S": "asksize",
+    "x": "bidexchange",
+    "p": "bidprice",
+    "s": "bidsize",
+    "c": "conditions",
+    "t": "timestamp"
+}
+
+agg_mapping = {
+    "T": "symbol",
+    "o": "open",
+    "c": "close",
+    "h": "high",
+    "l": "low",
+    "a": "average",
+    "x": "exchange",
+    "v": "volume",
+    "s": "start",
+    "e": "end",
+    "vw": "vwap",
+    "av": "totalvolume",
+
+    # this is extra alias in the client side
+    "t": "timestamp",
+}
