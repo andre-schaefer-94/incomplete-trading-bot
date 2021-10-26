@@ -567,9 +567,9 @@ class Trader:
                 break # break the while loop
 
             # if stochastics crossed otherwise
-            elif stochCrossed:
-                self.success = 'YES: STOCH XED WITH GAIN'
-                break # break the while loop
+            #elif stochCrossed:
+            #    self.success = 'YES: STOCH XED WITH GAIN'
+            #    break # break the while loop
 
             else:
                 self._L.info('%s: %.2f <-- %.2f$ --> %.2f$ (gain: %.2f$)' % (stock.name,stopLoss,currentPrice,takeProfit,currentGain))
