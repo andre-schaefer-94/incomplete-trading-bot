@@ -118,7 +118,7 @@ class Trader:
             sharesQty = int(self.operEquity/assetPrice)
             return sharesQty
 
-    def load_historical_data(self,stock,interval='1Min',limit=100):
+    def load_historical_data(self,stock,callFromRun=False,interval='1Min',limit=100):
         # this function fetches the data from Alpaca
         # it is important to check whether is updated or not
 
@@ -128,7 +128,7 @@ class Trader:
         while True:
             try: # fetch the data
                 if interval is '30Min':
-                    df = self.alpaca.get_barset(stock.name, '5Min', limit).df[stock.name]
+                    df = self.alpaca.get_barset(stock.name, '15Min', limit).df[stock.name]
                     stock.df = df.resample('30min').agg({
                                         'open':'first',
                                         'high':'max',
@@ -155,7 +155,7 @@ class Trader:
                 diff = int(abs(diff)/60) # min
                 if diff <= timedeltaItv:
                     stock.lastTimeStamp = lastEntry
-                    return stock.df
+                    return stock.df,True
                 else:
                     if gvars.maxAttempts['LHD1'] >= attempt >= gvars.maxAttempts['LHD2']:
                         self._L.info('Fetching data, but it is taking a while (%d)...' % attempt)
@@ -165,6 +165,8 @@ class Trader:
                         self._L.info('Interval      : ' + str(interval))
 
                     elif attempt > gvars.maxAttempts['LHD2']:
+                        if (callFromRun and attempt>2*gvars.maxAttempts['LHD2']):
+                            return None,False
                         self._L.info('WARNING_FD! Max attempts (%d) reached trying to pull data, slowing down...' % attempt)
                         time.sleep(gvars.sleepTimes['LH']*4)
 
@@ -444,7 +446,7 @@ class Trader:
         try:
             while True:
                 if loadHist:
-                    self.load_historical_data(stock,interval=gvars.fetchItval['little'])
+                    _,loadHistDataIsPossible = self.load_historical_data(stock,interval=gvars.fetchItval['little'])
 
                 # càlculs
                 stoch_k_full, stoch_d_full = ti.stoch(
@@ -532,7 +534,7 @@ class Trader:
 
                 # check the stochastic crossing
                 stochTurn = 0
-                self.load_historical_data(stock,interval=gvars.fetchItval['little'])
+                _,loadHistDataIsPossible =self.load_historical_data(stock,interval=gvars.fetchItval['little'])
                 stochCrossed = self.get_stochastic(stock,direction=reverseDirection)
 
             # check if the position exists and load the price at stock.currentPrice
@@ -616,7 +618,9 @@ class Trader:
         self.timeout = 0
         while True:
 
-            self.load_historical_data(stock,interval=gvars.fetchItval['little'])
+            _,loadHistDataIsPossible =self.load_historical_data(stock,True,interval=gvars.fetchItval['little'])
+            if (not loadHistDataIsPossible):
+                return stock.name, True
 
             # 2. INSTANT TREND
             if not self.get_instant_trend(stock):
