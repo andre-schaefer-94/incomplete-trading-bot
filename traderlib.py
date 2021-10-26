@@ -125,33 +125,30 @@ class Trader:
         # it is important to check whether is updated or not
 
         #timedeltaItv = ceil(int(interval.strip('Min')) * 1.5) # 150% de l'interval, per si de cas
-        timedeltaItv = ceil(interval * 1.5)  # 150% de l'interval, per si de cas
+        #timedeltaItv = ceil(interval * 1.5)  # 150% de l'interval, per si de cas
+        timedeltaItv = ceil(interval * 5)  # 150% de l'interval, per si de cas
         attempt = 1
+        first=True
         while True:
             try: # fetch the data
-                #if interval is '30Min':
-                #    bs1 = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(5,tradeapi.TimeFrameUnit.Minute), limit=limit)
-                #    bs=self.alpaca.get_barset(stock.name, '5Min', limit)
-                #    df = bs.df[stock.name]
-                #    df1 = bs1.df
-                #    stock.df = df.resample('30min').agg({
-                #                        'open':'first',
-                #                        'high':'max',
-                #                        'low':'min',
-                #                        'close':'last',
-                #                        'volume':'sum'
-                #                        })
-                #    stock.df = df1.resample('30min').agg({
-                #                        'open':'first',
-                #                        'high':'max',
-                #                        'low':'min',
-                #                        'close':'last',
-                #                        'volume':'sum'
-                #                        })
-
-                #else:
-                    #stock.df = self.alpaca.get_barset(stock.name, interval, limit).df[stock.name]
-                stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(interval, tradeapi.TimeFrameUnit.Minute), limit=limit).df
+                if not first:
+                    interv=str(interval)+'Min'
+                    if interv == '30Min':
+                        #bs1 = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(5,tradeapi.TimeFrameUnit.Minute), limit=limit)
+                        bs=self.alpaca.get_barset(stock.name, '5Min', limit)
+                        df = bs.df[stock.name]
+                        #df1 = bs1.df
+                        stock.df = df.resample('30min').agg({
+                                            'open':'first',
+                                            'high':'max',
+                                            'low':'min',
+                                            'close':'last',
+                                            'volume':'sum'
+                                            })
+                    else:
+                        stock.df = self.alpaca.get_barset(stock.name, interv, limit).df[stock.name]
+                else:
+                    stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(interval, tradeapi.TimeFrameUnit.Minute), limit=limit).df
             except Exception as e:
                 self._L.info('WARNING_HD: Could not load historical data, retrying')
                 self._L.info(e)
@@ -179,6 +176,7 @@ class Trader:
                     elif attempt > gvars.maxAttempts['LHD2']:
                         if (callFromRun and attempt>2*gvars.maxAttempts['LHD2']):
                             return None,False
+                        first=not first
                         self._L.info('WARNING_FD! Max attempts (%d) reached trying to pull data, slowing down...' % attempt)
                         time.sleep(gvars.sleepTimes['LH']*4)
 
@@ -188,6 +186,7 @@ class Trader:
             except Exception as e:
                 self._L.info('ERROR_CD: Could not check if data is updated')
                 self._L.info(str(e))
+                first=not first
                 time.sleep(gvars.sleepTimes['LH'])
 
     def get_open_positions(self,assetId):
