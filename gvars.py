@@ -7,7 +7,7 @@
 from pathlib import Path
 from datetime import datetime
 
-MAX_WORKERS = 20 # max threads at a time
+MAX_WORKERS = 1 # max threads at a time
 
 gainRatio = 1.5 # takeProfit = -stopLoss*gainRatio
 stopLossMargin = 0.05 # extra margin for the stop loss
@@ -47,6 +47,12 @@ fetchItval = {
             'little':'5Min',
             'big':'30Min'
             }
+
+fetchItvalINT = {
+            'little':5,
+            'big':30
+            }
+
 
 # timeouts that will kill a process
 timeouts = {

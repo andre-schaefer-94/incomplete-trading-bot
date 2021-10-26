@@ -11,7 +11,9 @@ import tulipy as ti
 import os, time, threading, pytz
 import pandas as pd
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta,date
+
+import gvars
 from other_functions import *
 from math import ceil
 
@@ -118,28 +120,38 @@ class Trader:
             sharesQty = int(self.operEquity/assetPrice)
             return sharesQty
 
-    def load_historical_data(self,stock,callFromRun=False,interval='1Min',limit=100):
+    def load_historical_data(self,stock,callFromRun=False,interval=1,limit=100):
         # this function fetches the data from Alpaca
         # it is important to check whether is updated or not
 
-        timedeltaItv = ceil(int(interval.strip('Min')) * 1.5) # 150% de l'interval, per si de cas
-
+        #timedeltaItv = ceil(int(interval.strip('Min')) * 1.5) # 150% de l'interval, per si de cas
+        timedeltaItv = ceil(interval * 1.5)  # 150% de l'interval, per si de cas
         attempt = 1
         while True:
             try: # fetch the data
-                if interval is '30Min':
-                    df = self.alpaca.get_barset(stock.name, '15Min', limit).df[stock.name]
-                    stock.df = df.resample('30min').agg({
-                                        'open':'first',
-                                        'high':'max',
-                                        'low':'min',
-                                        'close':'last',
-                                        'volume':'sum'
-                                        })
+                #if interval is '30Min':
+                #    bs1 = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(5,tradeapi.TimeFrameUnit.Minute), limit=limit)
+                #    bs=self.alpaca.get_barset(stock.name, '5Min', limit)
+                #    df = bs.df[stock.name]
+                #    df1 = bs1.df
+                #    stock.df = df.resample('30min').agg({
+                #                        'open':'first',
+                #                        'high':'max',
+                #                        'low':'min',
+                #                        'close':'last',
+                #                        'volume':'sum'
+                #                        })
+                #    stock.df = df1.resample('30min').agg({
+                #                        'open':'first',
+                #                        'high':'max',
+                #                        'low':'min',
+                #                        'close':'last',
+                #                        'volume':'sum'
+                #                        })
 
-                else:
-                    stock.df = self.alpaca.get_barset(stock.name, interval, limit).df[stock.name]
-
+                #else:
+                    #stock.df = self.alpaca.get_barset(stock.name, interval, limit).df[stock.name]
+                stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(interval, tradeapi.TimeFrameUnit.Minute), limit=limit).df
             except Exception as e:
                 self._L.info('WARNING_HD: Could not load historical data, retrying')
                 self._L.info(e)
@@ -310,7 +322,7 @@ class Trader:
 
         try:
             while True:
-                self.load_historical_data(stock,interval=gvars.fetchItval['big'])
+                self.load_historical_data(stock,interval=gvars.fetchItvalINT['big'])
 
                 # calculate the EMAs
                 ema9 = ti.ema(stock.df.close.dropna().to_numpy(), 9)
@@ -351,7 +363,7 @@ class Trader:
 
         while True:
             try:
-                lastPrice = self.load_historical_data(stock,interval='1Min',limit=1)
+                lastPrice = self.load_historical_data(stock,interval=1,limit=1)
                 stock.lastPrice = float(lastPrice.close)
                 self._L.info('Last price read ALPACA    : ' + str(stock.lastPrice))
                 return stock.lastPrice
@@ -368,7 +380,7 @@ class Trader:
         try:
             while True:
                 if loadHist:
-                    self.load_historical_data(stock,interval=gvars.fetchItval['little'])
+                    self.load_historical_data(stock,interval=gvars.fetchItvalINT['little'])
 
                 # calculate the EMAs
                 ema9 = ti.ema(stock.df.close.dropna().to_numpy(), 9)
@@ -416,7 +428,7 @@ class Trader:
 
         while True:
             if loadHist:
-                self.load_historical_data(stock,interval=gvars.fetchItval['little'])
+                self.load_historical_data(stock,interval=gvars.fetchItvalINT['little'])
 
             # calculations
             rsi = ti.rsi(stock.df.close.values, 14) # it uses 14 periods
@@ -446,7 +458,7 @@ class Trader:
         try:
             while True:
                 if loadHist:
-                    _,loadHistDataIsPossible = self.load_historical_data(stock,interval=gvars.fetchItval['little'])
+                    _,loadHistDataIsPossible = self.load_historical_data(stock,interval=gvars.fetchItvalINT['little'])
 
                 # càlculs
                 stoch_k_full, stoch_d_full = ti.stoch(
@@ -534,7 +546,7 @@ class Trader:
 
                 # check the stochastic crossing
                 stochTurn = 0
-                _,loadHistDataIsPossible =self.load_historical_data(stock,interval=gvars.fetchItval['little'])
+                _,loadHistDataIsPossible =self.load_historical_data(stock,interval=gvars.fetchItvalINT['little'])
                 stochCrossed = self.get_stochastic(stock,direction=reverseDirection)
 
             # check if the position exists and load the price at stock.currentPrice
@@ -618,7 +630,7 @@ class Trader:
         self.timeout = 0
         while True:
 
-            _,loadHistDataIsPossible =self.load_historical_data(stock,True,interval=gvars.fetchItval['little'])
+            _,loadHistDataIsPossible =self.load_historical_data(stock,True,interval=gvars.fetchItvalINT['little'])
             if (not loadHistDataIsPossible):
                 return stock.name, True
 
