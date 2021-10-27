@@ -126,9 +126,10 @@ class Trader:
 
         #timedeltaItv = ceil(int(interval.strip('Min')) * 1.5) # 150% de l'interval, per si de cas
         #timedeltaItv = ceil(interval * 1.5)  # 150% de l'interval, per si de cas
-        timedeltaItv = ceil(interval * 5)  # 150% de l'interval, per si de cas
+        timedeltaItv = ceil(interval * 1.5)  # 150% de l'interval, per si de cas
         attempt = 1
         first=True
+        err=0
         while True:
             try: # fetch the data
                 if not first:
@@ -174,7 +175,7 @@ class Trader:
                         self._L.info('Interval      : ' + str(interval))
 
                     elif attempt > gvars.maxAttempts['LHD2']:
-                        if (callFromRun and attempt>2*gvars.maxAttempts['LHD2']):
+                        if (callFromRun):
                             return None,False
                         first=not first
                         self._L.info('WARNING_FD! Max attempts (%d) reached trying to pull data, slowing down...' % attempt)
@@ -186,6 +187,10 @@ class Trader:
             except Exception as e:
                 self._L.info('ERROR_CD: Could not check if data is updated')
                 self._L.info(str(e))
+                if (stock.df.empty==True):
+                    err=err+1
+                if (callFromRun):
+                    return None, False
                 first=not first
                 time.sleep(gvars.sleepTimes['LH'])
 

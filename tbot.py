@@ -115,7 +115,7 @@ def main():
     api = tradeapi.REST(gvars.API_KEY, gvars.API_SECRET_KEY, gvars.ALPACA_API_URL, api_version='v2')
 
     # initialize the asset handler
-    assHand = AssetHandler()
+    assHand = AssetHandler(api)
 
     # get the Alpaca account ready
     try:

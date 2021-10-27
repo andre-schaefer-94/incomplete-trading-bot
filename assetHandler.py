@@ -12,18 +12,24 @@ import other_functions
 from bs4 import BeautifulSoup
 from other_functions import *
 import gvars
+import pytz
+import alpaca_trade_api as tradeapi
 
 class AssetHandler:
-    def __init__(self):
+    def __init__(self,api):
         self.lockedAssets = set() # assets without a defined strategy
         self.tradeableAssets = set() # assets that may be traded today
         self.availableAssets = set() # assets availabe post filter
         self.usedAssets = set() # taken assets being traded
         self.excludedAssets = {'SPCE'} # excluded assets (EXAMPLE)
+        self.api=api
 
         try:
-            self.rawAssets = set(pd.read_csv(gvars.RAW_ASSETS))
-            print("Raw assets loaded from csv correclty")
+            ass=self.getAllAssets()
+            #self.rawAssets = set(pd.read_csv(gvars.RAW_ASSETS))
+            self.rawAssets = set(ass)
+            #print("Raw assets loaded from csv correclty")
+            print("Interesting assets loaded")
         except Exception as e:
             print("Could not load raw assets!")
             print(e)
@@ -33,6 +39,27 @@ class AssetHandler:
 
         th = threading.Thread(target=self.unlock_assets) # the process runs appart
         th.start()
+
+    def getAllAssets(self):
+        assets=self.api.list_assets('active')
+        ass=set()
+        strList=[]
+        for asset in assets:
+            strList.append(asset.symbol)
+        latestTrades=self.api.get_latest_trades(strList)
+        for asset in assets:
+            stockname=asset.symbol
+            try:
+                lastTrade=latestTrades[asset.symbol]
+            except KeyError as e:
+                e=e
+            if (lastTrade.price>gvars.operEquity):
+                continue
+            timedelay=datetime.now(pytz.timezone("America/New_York"))-lastTrade.timestamp
+            if (timedelay.seconds/60>1):
+                continue
+            ass.add(stockname)
+        return ass
 
     def find_target_asset(self):
 
