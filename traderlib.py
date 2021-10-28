@@ -135,7 +135,7 @@ class Trader:
                 #if not first:
                 interv=str(interval)+'Min'
                 if interv == '30Min':
-                    #bs1 = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(5,tradeapi.TimeFrameUnit.Minute), limit=limit)
+                    bs1 = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(5,tradeapi.TimeFrameUnit.Minute), limit=limit)
                     bs=self.alpaca.get_barset(stock.name, '5Min', limit)
                     df = bs.df[stock.name]
                     #df1 = bs1.df
@@ -367,11 +367,11 @@ class Trader:
 
         while True:
             try:
-                lastPrice = self.load_historical_data(stock,interval=1,limit=1)
+                lastPrice,_ = self.load_historical_data(stock,interval=1,limit=1)
                 stock.lastPrice = float(lastPrice.close)
                 self._L.info('Last price read ALPACA    : ' + str(stock.lastPrice))
                 return stock.lastPrice
-            except:
+            except Exception as e:
                 self._L.info('Failed to fetch data from alpaca, trying again')
                 time.sleep(10)
 
