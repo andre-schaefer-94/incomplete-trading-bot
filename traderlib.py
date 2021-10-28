@@ -132,24 +132,24 @@ class Trader:
         err=0
         while True:
             try: # fetch the data
-                if not first:
-                    interv=str(interval)+'Min'
-                    if interv == '30Min':
-                        #bs1 = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(5,tradeapi.TimeFrameUnit.Minute), limit=limit)
-                        bs=self.alpaca.get_barset(stock.name, '5Min', limit)
-                        df = bs.df[stock.name]
-                        #df1 = bs1.df
-                        stock.df = df.resample('30min').agg({
-                                            'open':'first',
-                                            'high':'max',
-                                            'low':'min',
-                                            'close':'last',
-                                            'volume':'sum'
-                                            })
-                    else:
-                        stock.df = self.alpaca.get_barset(stock.name, interv, limit).df[stock.name]
+                #if not first:
+                interv=str(interval)+'Min'
+                if interv == '30Min':
+                    #bs1 = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(5,tradeapi.TimeFrameUnit.Minute), limit=limit)
+                    bs=self.alpaca.get_barset(stock.name, '5Min', limit)
+                    df = bs.df[stock.name]
+                    #df1 = bs1.df
+                    stock.df = df.resample('30min').agg({
+                                        'open':'first',
+                                        'high':'max',
+                                        'low':'min',
+                                        'close':'last',
+                                        'volume':'sum'
+                                        })
                 else:
-                    stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(interval, tradeapi.TimeFrameUnit.Minute), limit=limit).df
+                    stock.df = self.alpaca.get_barset(stock.name, interv, limit).df[stock.name]
+                #else:
+                #    stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(interval, tradeapi.TimeFrameUnit.Minute), limit=limit).df
             except Exception as e:
                 self._L.info('WARNING_HD: Could not load historical data, retrying')
                 self._L.info(e)
@@ -187,11 +187,11 @@ class Trader:
             except Exception as e:
                 self._L.info('ERROR_CD: Could not check if data is updated')
                 self._L.info(str(e))
-                if (stock.df.empty==True):
-                    err=err+1
+                #if (stock.df.empty==True):
+                #    err=err+1
                 if (callFromRun):
                     return None, False
-                first=not first
+                #first=not first
                 time.sleep(gvars.sleepTimes['LH'])
 
     def get_open_positions(self,assetId):
