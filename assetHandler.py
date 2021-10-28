@@ -25,57 +25,79 @@ class AssetHandler:
         self.api=api
 
         try:
-            ass=self.getAllAssets()
+            #ass=self.getAllAssets()
             #self.rawAssets = set(pd.read_csv(gvars.RAW_ASSETS))
-            self.rawAssets = set(ass)
+            ##self.rawAssets = set(ass)
             #print("Raw assets loaded from csv correclty")
-            print("Interesting assets loaded")
+            print("Initializing AssetHandler")
         except Exception as e:
             print("Could not load raw assets!")
             print(e)
             block_thread()
 
-        self.tradeableAssets = self.rawAssets
+        #self.tradeableAssets = self.rawAssets
 
         th = threading.Thread(target=self.unlock_assets) # the process runs appart
         th.start()
 
-    def getAllAssets(self):
-        assets=self.api.list_assets('active')
-        ass=set()
-        strList=[]
-        for asset in assets:
-            strList.append(asset.symbol)
-        latestTrades=self.api.get_latest_trades(strList)
-        for asset in assets:
-            stockname=asset.symbol
-            try:
-                lastTrade=latestTrades[asset.symbol]
-            except KeyError as e:
-                e=e
-            if (lastTrade.price>gvars.operEquity):
-                continue
-            timedelay=datetime.now(pytz.timezone("America/New_York"))-lastTrade.timestamp
-            if (timedelay.seconds/60>1):
-                continue
-            ass.add(stockname)
-        return ass
+    def findInterestingAsset(self):
+        while True:
+            assets=self.api.list_assets('active')
+            ass=set()
+            strList=[]
+            count=0
+            for asset in assets:
+                strList.append(asset.symbol)
+                count=count+1
+                if (count==200):
+                    latestBars=self.api.get_barset(strList, '1Min', 1)
+                    # latestTrades=self.api.get_latest_bars(strList)
+                    dtNOW = datetime.now(pytz.timezone("America/New_York"))
+                    for a in strList:
+                        stockname = a
+                        lastTrade = None
+                        try:
+                            lastTrade = latestBars[a]
+                        except KeyError as e:
+                            e = e
+                        if (lastTrade == None):
+                            continue
+                        if (len(lastTrade)==0):
+                            continue
+                        if (lastTrade.df.high[0] > gvars.operEquity):
+                            continue
+
+                        timedelay = dtNOW - lastTrade[0].t
+                        if (timedelay.seconds / 60 > 3):
+                            continue
+                        yield stockname
+                    count = 0
+                    strList = []
+            if (len(strList) !=0):
+                latestBars=self.api.get_barset(strList, '1Min',1)
+            #return ass
 
     def find_target_asset(self):
 
         while True:
-            self.availableAssets = self.tradeableAssets
-            self.availableAssets -= self.usedAssets
-            self.availableAssets -= self.excludedAssets
-            self.availableAssets -= self.lockedAssets
+            #self.availableAssets = self.tradeableAssets
+            #self.availableAssets -= self.usedAssets
+            #self.availableAssets -= self.excludedAssets
+            #self.availableAssets -= self.lockedAssets
 
             try:
-                chosenAsset = random.choice(list(self.availableAssets)) # pick a chosen asset randomly
+                #chosenAsset = random.choice(list(self.availableAssets)) # pick a chosen asset randomly
+                gen=self.findInterestingAsset()
+                for chosenAsset in self.findInterestingAsset():
+                    if chosenAsset not in self.usedAssets and chosenAsset not in self.lockedAssets:
+                        break
                 self.usedAssets.add(chosenAsset)
                 print('Chosen asset: ' + chosenAsset)
-                print('%i available assets, %i used assets, %i locked assets\n' % (len(self.availableAssets),len(self.usedAssets),len(self.lockedAssets)))
+                #print('%i available assets, %i used assets, %i locked assets\n' % (len(self.availableAssets),len(self.usedAssets),len(self.lockedAssets)))
+                print('%i used assets, %i locked assets\n' % (
+                len(self.usedAssets), len(self.lockedAssets)))
                 return chosenAsset
-            except:
+            except Exception as e:
                 print('No more assets available, waiting for assets to be released...')
                 time.sleep(60)
 
