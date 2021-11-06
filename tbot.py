@@ -79,7 +79,7 @@ def check_account_ok(api):
 def run_tbot(_L,assHand,account):
 
     # initialize trader object
-    trader = Trader(gvars.API_KEY, gvars.API_SECRET_KEY, _L, account)
+    trader = Trader(gvars.API_KEY, gvars.API_SECRET_KEY,gvars.ALPACA_API_URL, _L, account)
 
     while True:
         waitIfMarketIsClosed()
