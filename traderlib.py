@@ -14,6 +14,7 @@ import pandas as pd
 from datetime import datetime, timezone, timedelta,date
 
 import gvars
+from marketOpenCheck import waitIfMarketIsClosed
 from other_functions import *
 from math import ceil
 
@@ -131,6 +132,7 @@ class Trader:
         first=True
         err=0
         while True:
+            wasMarketOpen=waitIfMarketIsClosed()
             try: # fetch the data
                 #if not first:
                 interv=str(interval)+'Min'
@@ -541,7 +543,7 @@ class Trader:
         exitSignal = False
 
         while True:
-
+            waitIfMarketIsClosed()
             targetGain = targetGainInit
 
             # not at every iteration it will check every condition
@@ -633,7 +635,9 @@ class Trader:
 
         self.timeout = 0
         while True:
-
+            wasMarketOpen=waitIfMarketIsClosed()
+            if (wasMarketOpen==False):
+                return stock.name,False
             _,loadHistDataIsPossible =self.load_historical_data(stock,True,interval=gvars.fetchItvalINT['little'])
             if (not loadHistDataIsPossible):
                 return stock.name, True
