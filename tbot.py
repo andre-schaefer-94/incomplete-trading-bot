@@ -3,7 +3,8 @@
 # This code is free, THANK YOU!
 # It is explained at the guide you can find at www.theincompleteguide.com
 # You will also find improvement ideas and explanations
-
+import marketOpenCheck
+from marketOpenCheck import waitIfMarketIsClosed
 from stocklib import *
 from traderlib import *
 from other_functions import *
@@ -81,7 +82,7 @@ def run_tbot(_L,assHand,account):
     trader = Trader(gvars.API_KEY, gvars.API_SECRET_KEY, _L, account)
 
     while True:
-
+        waitIfMarketIsClosed()
         ticker = assHand.find_target_asset()
         stock = Stock(ticker)
 
@@ -113,7 +114,8 @@ def main():
 
     # initialize the API with Alpaca
     api = tradeapi.REST(gvars.API_KEY, gvars.API_SECRET_KEY, gvars.ALPACA_API_URL, api_version='v2')
-
+    marketOpenCheck.api=api
+    marketOpenCheck._L=_L
     # initialize the asset handler
     assHand = AssetHandler(api)
 
