@@ -19,14 +19,14 @@ from other_functions import *
 from math import ceil
 
 class Trader:
-    def __init__(self, API_KEY, API_SECRET_KEY, _L, account):
+    def __init__(self, API_KEY, API_SECRET_KEY,ALPACA_API_URL, _L, account):
         self._L = _L
         self.thName = threading.currentThread().getName()
 
         try:
             self.API_KEY = API_KEY
             self.API_SECRET_KEY = API_SECRET_KEY
-            self.ALPACA_API_URL = "https://paper-api.alpaca.markets"
+            self.ALPACA_API_URL = ALPACA_API_URL
             self.alpaca = tradeapi.REST(self.API_KEY, self.API_SECRET_KEY, self.ALPACA_API_URL, api_version='v2') # or use ENV Vars
 
         except Exception as e:
