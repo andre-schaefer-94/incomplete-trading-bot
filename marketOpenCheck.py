@@ -10,6 +10,7 @@ def waitIfMarketIsClosed():
         if clock.is_open:
             return wasMarketOpen
         else:
-            _L.info("The market is closed.. waiting until the market opens again...")
+            if (wasMarketOpen==True):
+                _L.info("The market is closed.. waiting until the market opens again...")
             wasMarketOpen=False
             time.sleep(120)
