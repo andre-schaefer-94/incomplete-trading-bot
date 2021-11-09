@@ -1,5 +1,8 @@
 import alpaca_trade_api as tradeapi
 import time
+import urllib3
+
+urllib3.disable_warnings()
 
 api=None
 _L=None
