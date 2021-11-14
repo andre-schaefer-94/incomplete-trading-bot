@@ -14,7 +14,7 @@ import pandas as pd
 from datetime import datetime, timezone, timedelta,date
 
 import gvars
-from marketOpenCheck import waitIfMarketIsClosed
+from market import waitIfMarketIsClosed
 from other_functions import *
 from math import ceil
 
@@ -574,12 +574,21 @@ class Trader:
                     (stock.direction is 'buy' and currentPrice <= stopLoss) or
                     (stock.direction is 'sell' and currentPrice >= stopLoss)
                 ):
+                if (not stock.patternDayTradeProtectionSELL()):
+                    self._L.info('STOPLOSS reached at price %.3f but pattern day trading protection' % currentPrice)
+                    continue
                 self._L.info('STOPLOSS reached at price %.3f' % currentPrice)
                 self.success = 'NO: STOPLOSS'
                 break # break the while loop
 
             # if take profit reached
             elif currentGain >= targetGain:
+                if (not stock.patternDayTradeProtectionSELL()):
+                    self._L.info('Target gain reached at %.3f. but pattern day trading protection' % currentPrice )
+                    continue
+                if (not stochCrossed):
+                    self._L.info('# Target gain reached at %.3f. but stochastics not crossed yet..' % currentPrice)
+                    continue
                 self._L.info('# Target gain reached at %.3f. BYE   #' % currentPrice)
                 self.success = 'YES: TGT GAIN'
                 break # break the while loop
