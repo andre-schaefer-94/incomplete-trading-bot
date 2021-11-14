@@ -7,7 +7,7 @@
 from pathlib import Path
 from datetime import datetime
 
-MAX_WORKERS = 20 # max threads at a time
+MAX_WORKERS = 1 # max threads at a time
 
 gainRatio = 1.5 # takeProfit = -stopLoss*gainRatio
 stopLossMargin = 0.05 # extra margin for the stop loss
@@ -24,6 +24,8 @@ ALPACA_API_URL = "https://paper-api.alpaca.markets"
 if API_KEY is "" or API_SECRET_KEY is "":
     print('\n\n##### \n\nPlease get an API key at the Alpaca website! \n\n##### \n\n')
     raise ValueError
+
+PATTERN_DAY_TRADE_PROTECTION=True
 
 ################################################################ ATTEMPTS ->
 # max iteration attempts for the different actions
