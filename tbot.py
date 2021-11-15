@@ -3,6 +3,8 @@
 # This code is free, THANK YOU!
 # It is explained at the guide you can find at www.theincompleteguide.com
 # You will also find improvement ideas and explanations
+import requests.adapters
+
 import market
 from market import waitIfMarketIsClosed
 from stocklib import *
@@ -95,6 +97,7 @@ def run_tbot(_L,assHand,account):
 
 def main():
 
+    requests.adapters.DEFAULT_POOLSIZE=gvars.MAX_WORKERS
     # Set up a basic stderr logging; this is nothing fancy.
     log_format = '%(asctime)s %(threadName)12s: %(lineno)-4d %(message)s'
     stderr_handler = logging.StreamHandler()
