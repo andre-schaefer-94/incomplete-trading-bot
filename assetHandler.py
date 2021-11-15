@@ -10,6 +10,8 @@ from datetime import timedelta
 import time, threading, requests, re, random, os
 import other_functions
 from bs4 import BeautifulSoup
+
+from market import waitIfMarketIsClosed
 from other_functions import *
 import gvars
 import pytz
@@ -126,6 +128,7 @@ class AssetHandler:
 
         print('\nUnlocking service initialized')
         while True:
+            waitIfMarketIsClosed()
             print('\n# # # Unlocking assets # # #\n')
             time_before = datetime.now()-timedelta(minutes=30)
 
