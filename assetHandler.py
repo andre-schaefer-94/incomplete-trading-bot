@@ -11,6 +11,7 @@ import time, threading, requests, re, random, os
 import other_functions
 from bs4 import BeautifulSoup
 
+import tbot
 from market import waitIfMarketIsClosed
 from other_functions import *
 import gvars
@@ -94,13 +95,16 @@ class AssetHandler:
                     if chosenAsset not in self.usedAssets and chosenAsset not in self.lockedAssets:
                         break
                 self.usedAssets.add(chosenAsset)
-                print('Chosen asset: ' + chosenAsset)
+                if (tbot.LOGEVERYTHING):
+                    print('Chosen asset: ' + chosenAsset)
                 #print('%i available assets, %i used assets, %i locked assets\n' % (len(self.availableAssets),len(self.usedAssets),len(self.lockedAssets)))
-                print('%i used assets, %i locked assets\n' % (
+                if (tbot.LOGEVERYTHING):
+                    print('%i used assets, %i locked assets\n' % (
                 len(self.usedAssets), len(self.lockedAssets)))
                 return chosenAsset
             except Exception as e:
-                print('No more assets available, waiting for assets to be released...')
+                if (tbot.LOGEVERYTHING):
+                    print('No more assets available, waiting for assets to be released...')
                 time.sleep(60)
 
     def make_asset_available(self,ticker):
@@ -108,16 +112,19 @@ class AssetHandler:
         try:
             self.usedAssets.remove(ticker)
         except Exception as e:
-            print('Could not remove %s from used assets, not found' % ticker)
-            print(e)
+            if (tbot.LOGEVERYTHING):
+                print('Could not remove %s from used assets, not found' % ticker)
+                print(e)
 
         self.availableAssets.add(ticker)
-        print('Asset %s was made available' % ticker)
+        if (tbot.LOGEVERYTHING):
+            print('Asset %s was made available' % ticker)
         time.sleep(1)
 
     def lock_asset(self,ticker):
         if type(ticker) is not str:
-            raise Exception('ticker is not a string!')
+            if (tbot.LOGEVERYTHING):
+                raise Exception('ticker is not a string!')
 
         time = datetime.now()
         self.usedAssets.remove(ticker)
@@ -126,15 +133,30 @@ class AssetHandler:
     def unlock_assets(self):
         # this function unlocks the locked assets periodically
 
-        print('\nUnlocking service initialized')
+        if (tbot.LOGEVERYTHING):
+            print('\nUnlocking service initialized')
         while True:
             waitIfMarketIsClosed()
-            print('\n# # # Unlocking assets # # #\n')
+            if (tbot.LOGEVERYTHING):
+                print('\n# # # Unlocking assets # # #\n')
             time_before = datetime.now()-timedelta(minutes=30)
 
 
             self.tradeableAssets = self.tradeableAssets.union(self.lockedAssets)
-            print('%d locked assets moved to tradeable' % len(self.lockedAssets))
+            if (tbot.LOGEVERYTHING):
+                print('%d locked assets moved to tradeable' % len(self.lockedAssets))
             self.lockedAssets = set()
 
+            tbot.LOGEVERYTHING=self.shouldAllLogsBeDisplayed()
+
             time.sleep(gvars.sleepTimes['UA'])
+
+    def shouldAllLogsBeDisplayed(self):
+        with open("LogAll?") as f:
+            c = f.read(1)
+            if not c:
+                return True
+            if(c=='y'):
+                return True
+            else:
+                return False

@@ -14,6 +14,7 @@ import pandas as pd
 from datetime import datetime, timezone, timedelta,date
 
 import gvars
+import tbot
 from market import waitIfMarketIsClosed
 from other_functions import *
 from math import ceil
@@ -43,24 +44,29 @@ class Trader:
         try:
             asset = self.alpaca.get_asset(ticker)
             if not asset.tradable:
-                self._L.info('%s is not tradable, locking it' % ticker)
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('%s is not tradable, locking it' % ticker)
                 return False
             else:
                 if direction:
                     if (direction is 'sell') and (not asset.shortable):
-                        self._L.info('%s is not shortable, locking it' % ticker)
+                        if (tbot.LOGEVERYTHING):
+                            self._L.info('%s is not shortable, locking it' % ticker)
                         return False
                     elif (direction is 'buy') and (not asset.tradable):
-                        self._L.info('%s is not tradable, locking it' % ticker)
+                        if (tbot.LOGEVERYTHING):
+                            self._L.info('%s is not tradable, locking it' % ticker)
                         return False
 
                 return True
 
         except:
-            self._L.info('Asset %s not answering well' % ticker)
+            if (tbot.LOGEVERYTHING):
+                self._L.info('Asset %s not answering well' % ticker)
             pass
 
-        self._L.info('%s is NOT tradable or something weird' % ticker)
+        if (tbot.LOGEVERYTHING):
+            self._L.info('%s is NOT tradable or something weird' % ticker)
         return False
 
     def announce_order(self):
@@ -85,8 +91,9 @@ class Trader:
             else:
                 raise ValueError
         except Exception as e:
-            self._L.info('ERROR_SL! Direction was not clear when setting stoploss!')
-            self._L.info(str(e))
+            if (tbot.LOGEVERYTHING):
+                self._L.info('ERROR_SL! Direction was not clear when setting stoploss!')
+                self._L.info(str(e))
             self.stopLoss = float(stopLoss)
 
         self._L.info('StopLoss set at %.2f' % self.stopLoss)
@@ -103,8 +110,9 @@ class Trader:
             # long: if I enter at 10$ with stop loss at 8$, take profit = 10$ + (10$-8$)*2 = 14
             # short: if I enter at 10$ with stop loss at 12$, take profit = 10$ + (10$-12$)*2 = 6
         except Exception as e:
-            self._L.info('ERROR_TP! Direction was not clear when setting stoploss!')
-            self._L.info(e)
+            if (tbot.LOGEVERYTHING):
+                self._L.info('ERROR_TP! Direction was not clear when setting stoploss!')
+                self._L.info(e)
             self.takeProfit = round(entryPrice + diff*1.5,2)
 
         return self.takeProfit
@@ -114,7 +122,8 @@ class Trader:
 
         account = self.alpaca.get_account()
         if float(account.buying_power) < self.operEquity:
-            self._L.info('Oops! Not enough buying power (%d$), aborting' % float(account.buying_power))
+            if (tbot.LOGEVERYTHING):
+                self._L.info('Oops! Not enough buying power (%d$), aborting' % float(account.buying_power))
             time.sleep(3)
             return False
         else:
@@ -153,8 +162,9 @@ class Trader:
                 #else:
                 #    stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(interval, tradeapi.TimeFrameUnit.Minute), limit=limit).df
             except Exception as e:
-                self._L.info('WARNING_HD: Could not load historical data, retrying')
-                self._L.info(e)
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('WARNING_HD: Could not load historical data, retrying')
+                    self._L.info(e)
                 time.sleep(gvars.sleepTimes['LH'])
 
             try: # check if the data is updated
@@ -170,25 +180,28 @@ class Trader:
                     return stock.df,True
                 else:
                     if gvars.maxAttempts['LHD1'] >= attempt >= gvars.maxAttempts['LHD2']:
-                        self._L.info('Fetching data, but it is taking a while (%d)...' % attempt)
-                        self._L.info('Last entry    : ' + str(lastEntry))
-                        self._L.info('Current time  : ' + str(nowTimeDelta))
-                        self._L.info('Diff          : ' + str(diff))
-                        self._L.info('Interval      : ' + str(interval))
+                        if (tbot.LOGEVERYTHING):
+                            self._L.info('Fetching data, but it is taking a while (%d)...' % attempt)
+                            self._L.info('Last entry    : ' + str(lastEntry))
+                            self._L.info('Current time  : ' + str(nowTimeDelta))
+                            self._L.info('Diff          : ' + str(diff))
+                            self._L.info('Interval      : ' + str(interval))
 
                     elif attempt > gvars.maxAttempts['LHD2']:
                         if (callFromRun):
                             return None,False
                         first=not first
-                        self._L.info('WARNING_FD! Max attempts (%d) reached trying to pull data, slowing down...' % attempt)
+                        if (tbot.LOGEVERYTHING):
+                            self._L.info('WARNING_FD! Max attempts (%d) reached trying to pull data, slowing down...' % attempt)
                         time.sleep(gvars.sleepTimes['LH']*4)
 
                     time.sleep(gvars.sleepTimes['LH'])
                     attempt += 1
 
             except Exception as e:
-                self._L.info('ERROR_CD: Could not check if data is updated')
-                self._L.info(str(e))
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('ERROR_CD: Could not check if data is updated')
+                    self._L.info(str(e))
                 #if (stock.df.empty==True):
                 #    err=err+1
                 if (callFromRun):
@@ -289,9 +302,10 @@ class Trader:
                         self.alpaca.cancel_order(order.id)
                         return True
             except Exception as e:
-                self._L.info('WARNING_CO! Failed to cancel order, trying again')
-                self._L.info(e)
-                self._L.info(str(ordersList))
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('WARNING_CO! Failed to cancel order, trying again')
+                    self._L.info(e)
+                    self._L.info(str(ordersList))
                 attempt += 1
 
                 time.sleep(5)
@@ -316,14 +330,16 @@ class Trader:
                 time.sleep(gvars.sleepTimes['CP'])
                 attempt += 1
 
-        self._L.info('Position NOT found for %s' % stock.name)
+        if (tbot.LOGEVERYTHING):
+            self._L.info('Position NOT found for %s' % stock.name)
         return False
 
     def get_general_trend(self,stock):
         # this function analyses the general trend
         # it defines the direction and returns a True if defined
 
-        self._L.info('\n\n### GENERAL TREND ANALYSIS (%s) ###' % stock.name)
+        if (tbot.LOGEVERYTHING):
+            self._L.info('\n\n### GENERAL TREND ANALYSIS (%s) ###' % stock.name)
         timeout = 1
 
         try:
@@ -334,34 +350,39 @@ class Trader:
                 ema9 = ti.ema(stock.df.close.dropna().to_numpy(), 9)
                 ema26 = ti.ema(stock.df.close.dropna().to_numpy(), 26)
                 ema50 = ti.ema(stock.df.close.dropna().to_numpy(), 50)
-
-                self._L.info('[GT %s] Current: EMA9: %.3f // EMA26: %.3f // EMA50: %.3f' % (stock.name,ema9[-1],ema26[-1],ema50[-1]))
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('[GT %s] Current: EMA9: %.3f // EMA26: %.3f // EMA50: %.3f' % (stock.name,ema9[-1],ema26[-1],ema50[-1]))
 
                 # check the buying trend
                 if (ema9[-1] > ema26[-1]) and (ema26[-1] > ema50[-1]):
-                    self._L.info('OK: Trend going UP')
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('OK: Trend going UP')
                     stock.direction = 'buy'
                     return True
 
                 # check the selling trend
                 elif (ema9[-1] < ema26[-1]) and (ema26[-1] < ema50[-1]):
-                    self._L.info('OK: Trend going DOWN')
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('OK: Trend going DOWN')
                     stock.direction = 'sell'
                     return True
 
                 elif timeout >= gvars.timeouts['GT']:
-                    self._L.info('This asset is not interesting (timeout)')
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('This asset is not interesting (timeout)')
                     return False
 
                 else:
-                    self._L.info('Trend not clear, waiting...')
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('Trend not clear, waiting...')
 
                     timeout += gvars.sleepTimes['GT']
                     time.sleep(gvars.sleepTimes['GT'])
 
         except Exception as e:
-            self._L.info('ERROR_GT: error at general trend')
-            self._L.info(e)
+            if (tbot.LOGEVERYTHING):
+                self._L.info('ERROR_GT: error at general trend')
+                self._L.info(e)
             block_thread(self._L,e,self.thName)
 
     def get_last_price(self,stock):
@@ -374,14 +395,16 @@ class Trader:
                 self._L.info('Last price read ALPACA    : ' + str(stock.lastPrice))
                 return stock.lastPrice
             except Exception as e:
-                self._L.info('Failed to fetch data from alpaca, trying again')
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('Failed to fetch data from alpaca, trying again')
                 time.sleep(10)
 
     def get_instant_trend(self,stock,loadHist=False,wait=True):
         # this function analyses the instant trend
         # it checks the direction and returns a True if it matches
 
-        self._L.info('\n\n### INSTANT TREND ANALYSIS (%s for %s) ###' % (stock.name,stock.direction))
+        if (tbot.LOGEVERYTHING):
+            self._L.info('\n\n### INSTANT TREND ANALYSIS (%s for %s) ###' % (stock.name,stock.direction))
 
         try:
             while True:
@@ -393,7 +416,8 @@ class Trader:
                 ema26 = ti.ema(stock.df.close.dropna().to_numpy(), 26)
                 ema50 = ti.ema(stock.df.close.dropna().to_numpy(), 50)
 
-                self._L.info('[%s] Instant Trend EMAS = [%.2f,%.2f,%.2f]' % (stock.name,ema9[-1],ema26[-1],ema50[-1]))
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('[%s] Instant Trend EMAS = [%.2f,%.2f,%.2f]' % (stock.name,ema9[-1],ema26[-1],ema50[-1]))
 
                 # look for a buying trend
                 if (
@@ -401,7 +425,8 @@ class Trader:
                         (ema9[-1] > ema26[-1]) and
                         (ema26[-1] > ema50[-1])
                     ):
-                    self._L.info('OK: Trend going UP')
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('OK: Trend going UP')
                     return True
 
                 # look for a selling trend
@@ -410,11 +435,13 @@ class Trader:
                         (ema9[-1] < ema26[-1]) and
                         (ema26[-1] < ema50[-1])
                     ):
-                    self._L.info('OK: Trend going DOWN')
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('OK: Trend going DOWN')
                     return True
 
                 else:
-                    self._L.info('Trend not clear, waiting (%s)' % stock.direction)
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('Trend not clear, waiting (%s)' % stock.direction)
 
                     if wait:
                         self.timeout += gvars.sleepTimes['IT']
@@ -423,14 +450,16 @@ class Trader:
                     return False
 
         except Exception as e:
-            self._L.info('ERROR_IT: error at instant trend')
-            self._L.info(e)
+            if (tbot.LOGEVERYTHING):
+                self._L.info('ERROR_IT: error at instant trend')
+                self._L.info(e)
             block_thread(self._L,e,self.thName)
 
     def get_rsi(self,stock,loadHist=False):
         # this function calculates the RSI value
 
-        self._L.info('\n\n### RSI TREND ANALYSIS (%s for %s) ###' % (stock.name,stock.direction))
+        if (tbot.LOGEVERYTHING):
+            self._L.info('\n\n### RSI TREND ANALYSIS (%s for %s) ###' % (stock.name,stock.direction))
 
         while True:
             if loadHist:
@@ -441,15 +470,18 @@ class Trader:
             rsi = rsi[-1]
 
             if (stock.direction == 'buy') and ((rsi>50) and (rsi<80)):
-                self._L.info('OK: RSI is %.2f' % rsi)
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('OK: RSI is %.2f' % rsi)
                 return True,rsi
 
             elif (stock.direction == 'sell') and ((rsi<50) and (rsi>20)):
-                self._L.info('OK: RSI is %.2f' % rsi)
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('OK: RSI is %.2f' % rsi)
                 return True,rsi
 
             else:
-                self._L.info('RSI: %.0f, waiting (dir: %s)' % (rsi,stock.direction))
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('RSI: %.0f, waiting (dir: %s)' % (rsi,stock.direction))
 
                 self.timeout += gvars.sleepTimes['RS']
                 time.sleep(gvars.sleepTimes['RS'])
@@ -458,7 +490,8 @@ class Trader:
     def get_stochastic(self,stock,direction,loadHist=False,forSell=False):
         # this function calculates the stochastic curves
 
-        self._L.info('\n\n### STOCHASTIC TREND ANALYSIS (%s for %s) ###' % (stock.name,stock.direction))
+        if (tbot.LOGEVERYTHING):
+            self._L.info('\n\n### STOCHASTIC TREND ANALYSIS (%s for %s) ###' % (stock.name,stock.direction))
 
 
         try:
@@ -481,7 +514,8 @@ class Trader:
                         (stoch_k > stoch_d) and
                         ((stoch_k <= gvars.limStoch['maxBuy']) and (stoch_d <= gvars.limStoch['maxBuy']))
                     ):
-                    self._L.info('OK: k is over d: (K,D)=(%.2f,%.2f)' % (stoch_k,stoch_d))
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('OK: k is over d: (K,D)=(%.2f,%.2f)' % (stoch_k,stoch_d))
                     return True
 
                 # look for a selling condition
@@ -490,21 +524,24 @@ class Trader:
                         (stoch_k < stoch_d) and
                         ((stoch_d >= gvars.limStoch['minSell']) and (stoch_k >= gvars.limStoch['minSell']))
                     ):
-                    self._L.info('OK: k is under d: (K,D)=(%.2f,%.2f)' % (stoch_k,stoch_d))
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('OK: k is under d: (K,D)=(%.2f,%.2f)' % (stoch_k,stoch_d))
                     return True
 
                 else:
-                    self._L.info('NO: The stochastics are (K,D)=(%.2f,%.2f) for %s' % (stoch_k,stoch_d,direction))
+                    if (tbot.LOGEVERYTHING):
+                        self._L.info('NO: The stochastics are (K,D)=(%.2f,%.2f) for %s' % (stoch_k,stoch_d,direction))
 
                     self.timeout += gvars.sleepTimes['ST']
                     time.sleep(gvars.sleepTimes['ST'])
                     return False
 
         except Exception as e:
-            self._L.info('ERROR_GS: error when getting stochastics')
-            self._L.info(stock.df)
-            self._L.info(stock.direction)
-            self._L.info(str(e))
+            if (tbot.LOGEVERYTHING):
+                self._L.info('ERROR_GS: error when getting stochastics')
+                self._L.info(stock.df)
+                self._L.info(stock.direction)
+                self._L.info(str(e))
             return False
 
     def enter_position_mode(self,stock,desiredPrice,sharesQty):
@@ -575,8 +612,10 @@ class Trader:
                     (stock.direction is 'sell' and currentPrice >= stopLoss)
                 ):
                 if (not stock.patternDayTradeProtectionSELL()):
+                    self._L.info(str(stock.name))
                     self._L.info('STOPLOSS reached at price %.3f but pattern day trading protection' % currentPrice)
                     continue
+                self._l.info(str(stock.name))
                 self._L.info('STOPLOSS reached at price %.3f' % currentPrice)
                 self.success = 'NO: STOPLOSS'
                 break # break the while loop
@@ -584,11 +623,14 @@ class Trader:
             # if take profit reached
             elif currentGain >= targetGain:
                 if (not stock.patternDayTradeProtectionSELL()):
+                    self._L.info(str(stock.name))
                     self._L.info('Target gain reached at %.3f. but pattern day trading protection' % currentPrice )
                     continue
                 if (not stochCrossed):
+                    self._L.info(str(stock.name))
                     self._L.info('# Target gain reached at %.3f. but stochastics not crossed yet..' % currentPrice)
                     continue
+                self._L.info(str(stock.name))
                 self._L.info('# Target gain reached at %.3f. BYE   #' % currentPrice)
                 self.success = 'YES: TGT GAIN'
                 break # break the while loop
@@ -599,7 +641,8 @@ class Trader:
             #    break # break the while loop
 
             else:
-                self._L.info('%s: %.2f <-- %.2f$ --> %.2f$ (gain: %.2f$)' % (stock.name,stopLoss,currentPrice,takeProfit,currentGain))
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('%s: %.2f <-- %.2f$ --> %.2f$ (gain: %.2f$)' % (stock.name,stopLoss,currentPrice,takeProfit,currentGain))
 
                 time.sleep(gvars.sleepTimes['PF'])
                 timeout += gvars.sleepTimes['PF']
@@ -626,10 +669,12 @@ class Trader:
     def run(self,stock):
         # this is the main thread
 
-        self._L.info('\n\n\n # #  R U N N I N G   B O T ––> (%s with %s) # #\n' % (stock.name,self.thName))
+        if (tbot.LOGEVERYTHING):
+            self._L.info('\n\n\n # #  R U N N I N G   B O T ––> (%s with %s) # #\n' % (stock.name,self.thName))
 
         if self.check_position(stock,maxAttempts=2): # check if the position exists beforehand
-            self._L.info('There is already a position open with %s, aborting!' % stock.name)
+            if (tbot.LOGEVERYTHING):
+                self._L.info('There is already a position open with %s, aborting!' % stock.name)
             return stock.name,True
 
         if not self.is_tradable(stock.name):
@@ -693,8 +738,9 @@ class Trader:
             try: # go on and enter the position
                 self.enter_position_mode(stock,currentPrice,sharesQty)
             except Exception as e:
-                self._L.info('ERROR_EP: error when entering position')
-                self._L.info(str(e))
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('ERROR_EP: error when entering position')
+                    self._L.info(str(e))
                 block_thread(self._L,e,self.thName,stock.name)
 
             self._L.info('\n\n##### OPERATION COMPLETED #####\n\n')
@@ -708,5 +754,6 @@ class Trader:
                     self._L.info('Blocking asset due to bad strategy')
                     return stock.name,True
             except Exception as e:
-                self._L.info('ERROR_SU: failed to identify success')
-                self._L.info(str(e))
+                if (tbot.LOGEVERYTHING):
+                    self._L.info('ERROR_SU: failed to identify success')
+                    self._L.info(str(e))
