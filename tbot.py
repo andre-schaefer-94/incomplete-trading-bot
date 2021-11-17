@@ -18,6 +18,7 @@ from pytz import timezone
 
 # Global object we log to; the handler will work with any log message
 _L = logging.getLogger("demo")
+LOGEVERYTHING=True
 
 # Create a special logger that logs to per-thread-name files
 class MultiHandler(logging.Handler):
