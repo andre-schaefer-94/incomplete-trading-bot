@@ -7,9 +7,9 @@
 from pathlib import Path
 from datetime import datetime
 
-MAX_WORKERS = 1 # max threads at a time
+MAX_WORKERS = 20 # max threads at a time
 
-gainRatio = 1.5 # takeProfit = -stopLoss*gainRatio
+gainRatio = 1.3 # takeProfit = -stopLoss*gainRatio
 stopLossMargin = 0.05 # extra margin for the stop loss
 
 operEquity = 65 # defines the target amount per execution ($)
