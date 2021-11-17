@@ -97,7 +97,8 @@ def run_tbot(_L,assHand,account):
 
 def main():
 
-    requests.adapters.DEFAULT_POOLSIZE=gvars.MAX_WORKERS
+    requests.adapters.DEFAULT_POOLSIZE = gvars.MAX_WORKERS
+    requests.adapters.DEFAULT_POOLBLOCK = True
     # Set up a basic stderr logging; this is nothing fancy.
     log_format = '%(asctime)s %(threadName)12s: %(lineno)-4d %(message)s'
     stderr_handler = logging.StreamHandler()

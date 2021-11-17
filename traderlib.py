@@ -121,7 +121,7 @@ class Trader:
             sharesQty = int(self.operEquity/assetPrice)
             return sharesQty
 
-    def load_historical_data(self,stock,callFromRun=False,interval=1,limit=100):
+    def load_historical_data(self,stock,callFromRun=False,interval=1,limit=100,callForSell=False):
         # this function fetches the data from Alpaca
         # it is important to check whether is updated or not
 
@@ -132,7 +132,7 @@ class Trader:
         first=True
         err=0
         while True:
-            wasMarketOpen=waitIfMarketIsClosed()
+            wasMarketOpen=waitIfMarketIsClosed(callForSell)
             try: # fetch the data
                 #if not first:
                 interv=str(interval)+'Min'
@@ -455,7 +455,7 @@ class Trader:
                 time.sleep(gvars.sleepTimes['RS'])
                 return False
 
-    def get_stochastic(self,stock,direction,loadHist=False):
+    def get_stochastic(self,stock,direction,loadHist=False,forSell=False):
         # this function calculates the stochastic curves
 
         self._L.info('\n\n### STOCHASTIC TREND ANALYSIS (%s for %s) ###' % (stock.name,stock.direction))
@@ -464,7 +464,7 @@ class Trader:
         try:
             while True:
                 if loadHist:
-                    _,loadHistDataIsPossible = self.load_historical_data(stock,interval=gvars.fetchItvalINT['little'])
+                    _,loadHistDataIsPossible = self.load_historical_data(stock,interval=gvars.fetchItvalINT['little'],callForSell=forSell)
 
                 # càlculs
                 stoch_k_full, stoch_d_full = ti.stoch(
@@ -543,7 +543,7 @@ class Trader:
         exitSignal = False
 
         while True:
-            waitIfMarketIsClosed()
+            waitIfMarketIsClosed(True)
             targetGain = targetGainInit
 
             # not at every iteration it will check every condition
@@ -552,8 +552,8 @@ class Trader:
 
                 # check the stochastic crossing
                 stochTurn = 0
-                _,loadHistDataIsPossible =self.load_historical_data(stock,interval=gvars.fetchItvalINT['little'])
-                stochCrossed = self.get_stochastic(stock,direction=reverseDirection)
+                _,loadHistDataIsPossible =self.load_historical_data(stock,interval=gvars.fetchItvalINT['little'],callForSell=True)
+                stochCrossed = self.get_stochastic(stock,direction=reverseDirection,forSell=True)
 
             # check if the position exists and load the price at stock.currentPrice
             if not self.check_position(stock):
