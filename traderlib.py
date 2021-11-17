@@ -72,13 +72,13 @@ class Trader:
     def announce_order(self):
         # this function acts as a visual aid
 
-        self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
-        self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
+        #self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
+        #self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
         self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
         self._L.info('# O R D E R   S U B M I T T E D       ')
         self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
-        self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
-        self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
+        #self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
+        #self._L.info('#\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t#')
 
     def set_stoploss(self,stopLoss,direction):
         #this function takes a price as a input and sets the stoploss there
@@ -279,8 +279,9 @@ class Trader:
                     return True
 
             except Exception as e:
-                self._L.info('WARNING_EO: order of | %d %s %s | did not enter' % (qty,symbol,side))
-                self._L.info(str(e))
+                if (attempt==1):
+                    self._L.info('WARNING_EO: order of | %d %s %s | did not enter' % (qty,symbol,side))
+                    self._L.info(str(e))
                 time.sleep(gvars.sleepTimes['SO'])
                 attempt += 1
 
