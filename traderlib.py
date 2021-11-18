@@ -615,6 +615,7 @@ class Trader:
                 if (not stock.patternDayTradeProtectionSELL()):
                     self._L.info(str(stock.name))
                     self._L.info('STOPLOSS reached at price %.3f but pattern day trading protection' % currentPrice)
+                    time.sleep(gvars.sleepTimes['GT'])
                     continue
                 self._l.info(str(stock.name))
                 self._L.info('STOPLOSS reached at price %.3f' % currentPrice)
@@ -626,6 +627,7 @@ class Trader:
                 if (not stock.patternDayTradeProtectionSELL()):
                     self._L.info(str(stock.name))
                     self._L.info('Target gain reached at %.3f. but pattern day trading protection' % currentPrice )
+                    time.sleep(gvars.sleepTimes['GT'])
                     continue
                 if (not stochCrossed):
                     self._L.info(str(stock.name))
