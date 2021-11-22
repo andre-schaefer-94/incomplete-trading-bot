@@ -2,6 +2,8 @@ import alpaca_trade_api as tradeapi
 import time
 import urllib3
 
+import gvars
+
 urllib3.disable_warnings(urllib3.exceptions.HTTPWarning)
 
 api=None
@@ -12,7 +14,12 @@ _L=None
 def waitIfMarketIsClosed(isForSell=False):
     wasMarketOpen=True
     while True:
-        clock = api.get_clock()
+        while True:
+            try:
+                clock = api.get_clock()
+                break
+            except:
+                time.sleep(gvars.sleepTimes['GT'])
         if clock.is_open:
             if (wasMarketOpen==False):
                 if (not isForSell):
