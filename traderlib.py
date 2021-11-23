@@ -130,7 +130,7 @@ class Trader:
             sharesQty = int(self.operEquity/assetPrice)
             return sharesQty
 
-    def load_historical_data(self,stock,callFromRun=False,interval=1,limit=100,callForSell=False):
+    def load_historical_data(self,stock,callFromRun=False,interval=1,limit=100,callForSell=False, lastPrice=False):
         # this function fetches the data from Alpaca
         # it is important to check whether is updated or not
 
@@ -160,8 +160,11 @@ class Trader:
                 else:
                     stock.df = self.alpaca.get_barset(stock.name, interv, limit).df[stock.name]
                 #else:'''
-                n = datetime.now(timezone.utc)-timedelta(days=10)
-                stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(1, tradeapi.TimeFrameUnit.Day),start=n.isoformat(), limit=limit).df
+                if (lastPrice==False):
+                    n = datetime.now(timezone.utc)-timedelta(days=10)
+                    stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(1, tradeapi.TimeFrameUnit.Day),start=n.isoformat(), limit=limit).df
+                else:
+                    stock.df = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(1, tradeapi.TimeFrameUnit.Minute), limit=limit).df
             except Exception as e:
                 if (tbot.LOGEVERYTHING):
                     self._L.info('WARNING_HD: Could not load historical data, retrying')
@@ -427,7 +430,7 @@ class Trader:
 
         while True:
             try:
-                lastPrice,_ = self.load_historical_data(stock,interval=1,limit=1)
+                lastPrice,_ = self.load_historical_data(stock,interval=1,limit=1,lastPrice=True)
                 stock.lastPrice = float(lastPrice.close)
                 self._L.info('Last price read ALPACA    : ' + str(stock.lastPrice))
                 return stock.lastPrice
