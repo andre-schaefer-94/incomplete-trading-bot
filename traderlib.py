@@ -49,11 +49,11 @@ class Trader:
                 return False
             else:
                 if direction:
-                    if (direction is 'sell') and (not asset.shortable):
+                    if (direction == 'sell') and (not asset.shortable):
                         if (tbot.LOGEVERYTHING):
                             self._L.info('%s is not shortable, locking it' % ticker)
                         return False
-                    elif (direction is 'buy') and (not asset.tradable):
+                    elif (direction == 'buy') and (not asset.tradable):
                         if (tbot.LOGEVERYTHING):
                             self._L.info('%s is not tradable, locking it' % ticker)
                         return False
@@ -84,9 +84,9 @@ class Trader:
         #this function takes a price as a input and sets the stoploss there
 
         try:
-            if direction is 'buy':
+            if direction == 'buy':
                 self.stopLoss = float(stopLoss - stopLoss*gvars.stopLossMargin)
-            elif direction is 'sell':
+            elif direction == 'sell':
                 self.stopLoss = float(stopLoss + stopLoss*gvars.stopLossMargin)
             else:
                 raise ValueError
@@ -145,7 +145,7 @@ class Trader:
             try: # fetch the data
                 #if not first:
                 interv=str(interval)+'Min'
-                if interv == '30Min':
+                '''if interv == '30Min':
                     bs1 = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(5,tradeapi.TimeFrameUnit.Minute), limit=limit)
                     bs=self.alpaca.get_barset(stock.name, '5Min', limit)
                     df = bs.df[stock.name]
@@ -159,15 +159,17 @@ class Trader:
                                         })
                 else:
                     stock.df = self.alpaca.get_barset(stock.name, interv, limit).df[stock.name]
-                #else:
-                #    stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(interval, tradeapi.TimeFrameUnit.Minute), limit=limit).df
+                #else:'''
+                n = datetime.now(timezone.utc)-timedelta(days=10)
+                stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(1, tradeapi.TimeFrameUnit.Day),start=n.isoformat(), limit=limit).df
             except Exception as e:
                 if (tbot.LOGEVERYTHING):
                     self._L.info('WARNING_HD: Could not load historical data, retrying')
                     self._L.info(e)
                 time.sleep(gvars.sleepTimes['LH'])
-
-            try: # check if the data is updated
+                continue
+            return stock.df, True
+            '''try: # check if the data is updated
 
                 lastEntry = stock.df.last('5Min').index[0] # entrada (vela) dels últims 5min
                 lastEntry = lastEntry.tz_convert('utc')
@@ -207,7 +209,7 @@ class Trader:
                 if (callFromRun):
                     return None, False
                 #first=not first
-                time.sleep(gvars.sleepTimes['LH'])
+                time.sleep(gvars.sleepTimes['LH'])'''
 
     def get_open_positions(self,assetId):
         # this function checks wether you already have an open position with the asset
@@ -230,22 +232,22 @@ class Trader:
         qty = orderDict['qty']
         time_in_force = 'gtc'
 
-        if orderDict['type'] is 'limit': # adjust order for a limit type
+        if orderDict['type'] == 'limit': # adjust order for a limit type
             type = 'limit'
             self._L.info('Desired limit price for limit order: %.3f$' % orderDict['limit_price'])
 
-            if side is 'buy':
+            if side == 'buy':
                 limit_price = orderDict['limit_price'] * (1+self.pctMargin)
                 # this line modifies the price that comes from the orderDict
                 # adding the needed flexibility for making sure the order goes through
-            elif side is 'sell':
+            elif side == 'sell':
                 limit_price = orderDict['limit_price'] * (1-self.pctMargin)
             else:
                 self._L.info('Side not identified: ' + str(side))
                 block_thread(self._L,e,self.thName)
             self._L.info('Corrected (added margin) limit price: %.3f$' % limit_price)
 
-        elif orderDict['type'] is 'market': # adjust order for a market type
+        elif orderDict['type'] == 'market': # adjust order for a market type
             type = 'market'
             self._L.info('Desired limit price for market order: %.3f$' % orderDict['limit_price'])
 
@@ -253,7 +255,7 @@ class Trader:
         attempt = 0
         while attempt < gvars.maxAttempts['SO']:
             try:
-                if type is 'limit':
+                if type == 'limit':
                     self.order = self.alpaca.submit_order(
                                             side=side,
                                             qty=qty,
@@ -266,7 +268,7 @@ class Trader:
                     self._L.info(self.order)
                     return True
 
-                elif type is 'market':
+                elif type == 'market':
                     self.order = self.alpaca.submit_order(
                                             side=side,
                                             qty=qty,
@@ -348,21 +350,21 @@ class Trader:
                 self.load_historical_data(stock,interval=gvars.fetchItvalINT['big'])
 
                 # calculate the EMAs
-                ema9 = ti.ema(stock.df.close.dropna().to_numpy(), 9)
-                ema26 = ti.ema(stock.df.close.dropna().to_numpy(), 26)
-                ema50 = ti.ema(stock.df.close.dropna().to_numpy(), 50)
+                ema1 = ti.ema(stock.df.close.dropna().to_numpy(), 1)
+                ema3 = ti.ema(stock.df.close.dropna().to_numpy(), 3)
+                ema5 = ti.ema(stock.df.close.dropna().to_numpy(), 5)
                 if (tbot.LOGEVERYTHING):
-                    self._L.info('[GT %s] Current: EMA9: %.3f // EMA26: %.3f // EMA50: %.3f' % (stock.name,ema9[-1],ema26[-1],ema50[-1]))
+                    self._L.info('[GT %s] Current: EMA1: %.3f // EMA2: %.3f // EMA5: %.3f' % (stock.name,ema1[-1],ema3[-1],ema5[-1]))
 
                 # check the buying trend
-                if (ema9[-1] > ema26[-1]) and (ema26[-1] > ema50[-1]):
+                if (ema1[-1] > ema3[-1]) and (ema3[-1] > ema5[-1]):
                     if (tbot.LOGEVERYTHING):
                         self._L.info('OK: Trend going UP')
                     stock.direction = 'buy'
                     return True
 
                 # check the selling trend
-                elif (ema9[-1] < ema26[-1]) and (ema26[-1] < ema50[-1]):
+                elif (ema1[-1] < ema3[-1]) and (ema3[-1] < ema5[-1]):
                     if (tbot.LOGEVERYTHING):
                         self._L.info('OK: Trend going DOWN')
                     stock.direction = 'sell'
@@ -385,6 +387,40 @@ class Trader:
                 self._L.info('ERROR_GT: error at general trend')
                 self._L.info(e)
             block_thread(self._L,e,self.thName)
+
+    def check_general_trend(self,stock):
+        # this function analyses the general trend
+        # it defines the direction
+        timeout = 1
+
+        try:
+                self.load_historical_data(stock,interval=gvars.fetchItvalINT['big'])
+
+                # calculate the EMAs
+                ema1 = ti.ema(stock.df.close.dropna().to_numpy(), 1)
+                ema3 = ti.ema(stock.df.close.dropna().to_numpy(), 3)
+                ema5 = ti.ema(stock.df.close.dropna().to_numpy(), 5)
+                #if (tbot.LOGEVERYTHING):
+               #     self._L.info('[GT %s] Current: EMA1: %.3f // EMA2: %.3f // EMA5: %.3f' % (stock.name,ema1[-1],ema3[-1],ema5[-1]))
+
+                # check the buying trend
+                if (ema1[-1] > ema3[-1]) and (ema3[-1] > ema5[-1]):
+                    #stock.direction = 'buy'
+                    return 'buy'
+
+                # check the selling trend
+                elif (ema1[-1] < ema3[-1]) and (ema3[-1] < ema5[-1]):
+                    #stock.direction = 'sell'
+                    return 'sell'
+
+                else:
+                    return ''
+
+        except Exception as e:
+            #if (tbot.LOGEVERYTHING):
+            self._L.info('ERROR_GT: error at check general trend')
+            self._L.info(e)
+            #block_thread(self._L,e,self.thName)
 
     def get_last_price(self,stock):
         # this function fetches the last full 1-min candle of Alpaca in a loop
@@ -556,11 +592,11 @@ class Trader:
         stopLoss = self.set_stoploss(ema50,direction=stock.direction) # stoploss = EMA50
         takeProfit = self.set_takeprofit(stock.avg_entry_price,stopLoss)
 
-        if stock.direction is 'buy':
+        if stock.direction == 'buy':
             targetGainInit = int((takeProfit-stock.avg_entry_price) * sharesQty)
             reverseDirection = 'sell'
 
-        elif stock.direction is 'sell':
+        elif stock.direction == 'sell':
             targetGainInit = int((stock.avg_entry_price-takeProfit) * sharesQty)
             reverseDirection = 'buy'
 
@@ -576,23 +612,23 @@ class Trader:
         self._L.info('######################################\n\n')
 
         timeout = 0
-        stochTurn = 0
-        stochCrossed = False
+        #stochTurn = 0
+        #stochCrossed = False
         exitSignal = False
 
         while True:
             waitIfMarketIsClosed(True)
             targetGain = targetGainInit
-
+            trend = self.check_general_trend(stock)
             # not at every iteration it will check every condition
             # some of them can wait
-            if (stochTurn >= gvars.sleepTimes['GS']) or (timeout == 0):
+            '''if (stochTurn >= gvars.sleepTimes['GS']) or (timeout == 0):
 
                 # check the stochastic crossing
                 stochTurn = 0
                 _,loadHistDataIsPossible =self.load_historical_data(stock,interval=gvars.fetchItvalINT['little'],callForSell=True)
                 stochCrossed = self.get_stochastic(stock,direction=reverseDirection,forSell=True)
-
+            '''
             # check if the position exists and load the price at stock.currentPrice
             if not self.check_position(stock):
                 self._L.info('Warning! Position not found at Alpaca')
@@ -601,23 +637,23 @@ class Trader:
                 currentPrice = stock.currentPrice
 
             # calculate current gain
-            if stock.direction is 'buy':
+            if stock.direction == 'buy':
                 currentGain = (currentPrice - stock.avg_entry_price) * sharesQty
-            elif stock.direction is 'sell':
+            elif stock.direction == 'sell':
                 currentGain = (stock.avg_entry_price - currentPrice) * sharesQty
 
 
             # if stop loss reached
             if (
-                    (stock.direction is 'buy' and currentPrice <= stopLoss) or
-                    (stock.direction is 'sell' and currentPrice >= stopLoss)
+                    (stock.direction == 'buy' and currentPrice <= stopLoss) or
+                    (stock.direction == 'sell' and currentPrice >= stopLoss)
                 ):
                 if (not stock.patternDayTradeProtectionSELL()):
                     self._L.info(str(stock.name))
                     self._L.info('STOPLOSS reached at price %.3f but pattern day trading protection' % currentPrice)
                     time.sleep(gvars.sleepTimes['GT'])
                     continue
-                self._l.info(str(stock.name))
+                self._L.info(str(stock.name))
                 self._L.info('STOPLOSS reached at price %.3f' % currentPrice)
                 self.success = 'NO: STOPLOSS'
                 break # break the while loop
@@ -629,27 +665,27 @@ class Trader:
                     self._L.info('Target gain reached at %.3f. but pattern day trading protection' % currentPrice )
                     time.sleep(gvars.sleepTimes['GT'])
                     continue
-                if (not stochCrossed):
-                    self._L.info(str(stock.name))
-                    self._L.info('# Target gain reached at %.3f. but stochastics not crossed yet..' % currentPrice)
-                    continue
+                #if ((stock.direction=='buy' and trend!='sell') or (stock.direction=='sell' and trend!='buy')):
+                #    self._L.info(str(stock.name))
+                #    self._L.info('# Target gain reached at %.3f. but general trend says not sell..' % currentPrice)
+                #    continue
                 self._L.info(str(stock.name))
                 self._L.info('# Target gain reached at %.3f. BYE   #' % currentPrice)
                 self.success = 'YES: TGT GAIN'
                 break # break the while loop
 
             # if stochastics crossed otherwise
-            #elif stochCrossed:
-            #    self.success = 'YES: STOCH XED WITH GAIN'
-            #    break # break the while loop
+            elif (stock.direction=='buy' and trend=='sell') or (stock.direction=='sell' and trend=='buy'):
+                self.success = 'YES: EMAs Crossed'
+                break # break the while loop
 
             else:
                 if (tbot.LOGEVERYTHING):
                     self._L.info('%s: %.2f <-- %.2f$ --> %.2f$ (gain: %.2f$)' % (stock.name,stopLoss,currentPrice,takeProfit,currentGain))
 
-                time.sleep(gvars.sleepTimes['PF'])
-                timeout += gvars.sleepTimes['PF']
-                stochTurn += gvars.sleepTimes['PF']
+                time.sleep(gvars.sleepTimes['GT'])
+                #timeout += gvars.sleepTimes['PF']
+                #stochTurn += gvars.sleepTimes['PF']
 
         # get out!
         orderOut = False
@@ -695,21 +731,21 @@ class Trader:
             wasMarketOpen=waitIfMarketIsClosed()
             if (wasMarketOpen==False):
                 return stock.name,False
-            _,loadHistDataIsPossible =self.load_historical_data(stock,True,interval=gvars.fetchItvalINT['little'])
-            if (not loadHistDataIsPossible):
-                return stock.name, True
+            #_,loadHistDataIsPossible =self.load_historical_data(stock,True,interval=gvars.fetchItvalINT['little'])
+            #if (not loadHistDataIsPossible):
+            #    return stock.name, True
 
             # 2. INSTANT TREND
-            if not self.get_instant_trend(stock):
-                continue # restart the loop
+            #if not self.get_instant_trend(stock):
+            #    continue # restart the loop
 
             # 3. RSI
-            if not self.get_rsi(stock):
-                continue # restart the loop
+            #if not self.get_rsi(stock):
+            #    continue # restart the loop
 
             # 4. STOCHASTIC
-            if not self.get_stochastic(stock,direction=stock.direction):
-                continue # restart the loop
+            #if not self.get_stochastic(stock,direction=stock.direction):
+            #    continue # restart the loop
 
             currentPrice = self.get_last_price(stock)
             sharesQty = self.get_shares_from_equity(currentPrice)
