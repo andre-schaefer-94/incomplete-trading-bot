@@ -165,7 +165,7 @@ class Trader:
                     stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(1, tradeapi.TimeFrameUnit.Day),start=n.isoformat(), limit=limit).df
                 else:
                     bs=self.alpaca.get_barset(stock.name, '1Min', limit)
-                    df = bs.df[stock.name]
+                    stock.df = bs.df[stock.name]
                     #stock.df = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(1, tradeapi.TimeFrameUnit.Minute), limit=limit).df
             except Exception as e:
                 if (tbot.LOGEVERYTHING):
