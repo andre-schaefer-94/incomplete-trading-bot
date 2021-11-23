@@ -164,7 +164,9 @@ class Trader:
                     n = datetime.now(timezone.utc)-timedelta(days=10)
                     stock.df=self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(1, tradeapi.TimeFrameUnit.Day),start=n.isoformat(), limit=limit).df
                 else:
-                    stock.df = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(1, tradeapi.TimeFrameUnit.Minute), limit=limit).df
+                    bs=self.alpaca.get_barset(stock.name, '1Min', limit)
+                    df = bs.df[stock.name]
+                    #stock.df = self.alpaca.get_bars(stock.name, tradeapi.TimeFrame(1, tradeapi.TimeFrameUnit.Minute), limit=limit).df
             except Exception as e:
                 if (tbot.LOGEVERYTHING):
                     self._L.info('WARNING_HD: Could not load historical data, retrying')
